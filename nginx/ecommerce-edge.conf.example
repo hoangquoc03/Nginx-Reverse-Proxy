@@ -1,0 +1,54 @@
+# Example only: not installed or enabled on a server.
+# Replace domain, certificate paths, static root, and backend addresses first.
+# Choose either the static React location or the frontend-proxy alternative below.
+
+server {
+    listen 80;
+    server_name shop.example.com;
+
+    # HTTP is only used to redirect to HTTPS (and may be used for ACME HTTP-01).
+    return 301 https://shop.example.com$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name shop.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/shop.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shop.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # API prefix is preserved and must match the Spring Cloud Gateway route.
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Production mode: serve the built React SPA from disk.
+    root /var/www/ecommerce/frontend;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Optional cache policy for content-hashed assets only. Adjust path to build output.
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Alternative when a frontend server is intentionally used instead of static files:
+    # Replace the location / block above with this proxy location; do not enable both.
+    # location / {
+    #     proxy_pass http://127.0.0.1:3000;
+    #     proxy_set_header Host $host;
+    #     proxy_set_header X-Real-IP $remote_addr;
+    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #     proxy_set_header X-Forwarded-Proto $scheme;
+    # }
+}

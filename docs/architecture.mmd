@@ -1,0 +1,52 @@
+flowchart LR
+    Client[Client: Browser / Mobile]
+    DNS[DNS]
+    CDN[CDN / WAF - optional]
+    Edge[Nginx Edge<br/>TLS, routing, limits, logs]
+    Static[React production build<br/>HTML, CSS, JS, images]
+    Gateway[Spring Cloud Gateway<br/>API routes, Spring Security, filters]
+    Eureka[Eureka Server<br/>private service registry]
+    LB[Spring Cloud LoadBalancer]
+
+    subgraph Services[Private Microservices]
+        User[User Service instances]
+        Product[Product Service instances]
+        Order[Order Service instances]
+        Payment[Payment Service instances]
+    end
+
+    UserDB[(User data store)]
+    ProductDB[(Product data store)]
+    OrderDB[(Order data store)]
+    PaymentDB[(Payment data store)]
+
+    Client -. DNS lookup .-> DNS
+    DNS -. resolves edge address .-> Edge
+    Client -->|HTTPS 443 direct when no CDN| Edge
+    Client -->|HTTPS 443| CDN
+    CDN -->|HTTPS re-encrypted or trusted private HTTP| Edge
+
+    Edge -->|static asset request| Static
+    Static -->|HTML / CSS / JS response| Edge
+    Edge -->|static response| Client
+
+    Edge -->|/api/**; internal HTTP or HTTPS| Gateway
+    Gateway <-->|register / discover instances| Eureka
+    Gateway -->|service ID| LB
+    Eureka -. registry data .-> LB
+    LB -->|lb://USER-SERVICE| User
+    LB -->|lb://PRODUCT-SERVICE| Product
+    LB -->|lb://ORDER-SERVICE| Order
+    LB -->|lb://PAYMENT-SERVICE| Payment
+
+    User --> UserDB
+    Product --> ProductDB
+    Order --> OrderDB
+    Payment --> PaymentDB
+
+    User -->|API response| Gateway
+    Product -->|API response| Gateway
+    Order -->|API response| Gateway
+    Payment -->|API response| Gateway
+    Gateway -->|API response| Edge
+    Edge -->|HTTPS response| Client

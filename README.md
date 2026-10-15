@@ -735,14 +735,14 @@ Phân biệt tầng phát sinh lỗi bằng status/access log, Nginx error log v
 
 ## 8. Lỗi thường gặp và cách khắc phục
 
-| Hiện tượng | Cách kiểm tra/xử lý |
-|---|---|
-| Vẫn nhận `413` sau khi đặt `10m` | Xác nhận request khớp đúng server/location, `nginx -T` cho thấy giá trị hiệu lực, đã reload thành công; sau đó kiểm tra giới hạn API Gateway/framework/multipart và body overhead. |
-| Nginx báo `413` khi file nhỏ hơn 10 MB | Tổng multipart body có thể lớn hơn file; xác định tầng phát sinh qua error/access và backend log. |
-| Gzip bật nhưng thiếu `Content-Encoding` | Dùng GET với nội dung text đủ lớn; kiểm tra `Accept-Encoding`, `Content-Type`, `Content-Length`, status, upstream compression và `gzip_types`. |
-| Cấu hình lỗi sau chỉnh sửa | Không reload/restart; chạy `sudo nginx -t`, sửa đúng file/dòng được báo, chạy lại test. |
-| Route frontend/API hỏng sau reload | Kiểm tra server/location, proxy headers, upstream 3000/8080, access/error log và health endpoint. |
-| Reload không thành công | Xem `systemctl status`, `journalctl` và `nginx -t`; giữ Nginx đang chạy với cấu hình cũ, sửa lỗi rồi thử lại. |
+| Hiện tượng                              | Cách kiểm tra/xử lý                                                                                                                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vẫn nhận `413` sau khi đặt `10m`        | Xác nhận request khớp đúng server/location, `nginx -T` cho thấy giá trị hiệu lực, đã reload thành công; sau đó kiểm tra giới hạn API Gateway/framework/multipart và body overhead. |
+| Nginx báo `413` khi file nhỏ hơn 10 MB  | Tổng multipart body có thể lớn hơn file; xác định tầng phát sinh qua error/access và backend log.                                                                                  |
+| Gzip bật nhưng thiếu `Content-Encoding` | Dùng GET với nội dung text đủ lớn; kiểm tra `Accept-Encoding`, `Content-Type`, `Content-Length`, status, upstream compression và `gzip_types`.                                     |
+| Cấu hình lỗi sau chỉnh sửa              | Không reload/restart; chạy `sudo nginx -t`, sửa đúng file/dòng được báo, chạy lại test.                                                                                            |
+| Route frontend/API hỏng sau reload      | Kiểm tra server/location, proxy headers, upstream 3000/8080, access/error log và health endpoint.                                                                                  |
+| Reload không thành công                 | Xem `systemctl status`, `journalctl` và `nginx -t`; giữ Nginx đang chạy với cấu hình cũ, sửa lỗi rồi thử lại.                                                                      |
 
 ## 9. Kết luận trình bày
 
@@ -753,3 +753,13 @@ Phân biệt tầng phát sinh lỗi bằng status/access log, Nginx error log v
 - **Đã thực hiện trong workspace:** thêm hướng dẫn bài 4 vào README và tạo cấu hình snippet minh họa.
 - **Chưa thực hiện trên VPS:** chưa đọc/sửa cấu hình hệ thống, chưa thay đổi giới hạn body, bật Gzip, kiểm tra cấu hình bằng Nginx, reload/restart hoặc gửi request kiểm thử.
 - **Việc bạn cần tự làm:** xác định file và endpoint upload thực tế, sao lưu file hệ thống liên quan, chọn phạm vi giới hạn, bổ sung directives Gzip không trùng, chạy `sudo nginx -t`; chỉ khi thành công mới reload và kiểm tra website/API/upload/Gzip cùng log.
+
+---
+
+# Bài 5: API Gateway và Reverse Proxy
+
+Bài phân tích kiến trúc chi tiết ở [docs/architecture-comparison.md](docs/architecture-comparison.md), sơ đồ luồng ở [docs/architecture.mmd](docs/architecture.mmd), cấu hình Edge tham khảo ở [nginx/ecommerce-edge.conf.example](nginx/ecommerce-edge.conf.example) và route Eureka/Spring Cloud Gateway ở [docs/spring-cloud-gateway-example.yml](docs/spring-cloud-gateway-example.yml).
+
+**Kết luận tóm tắt:** Nginx ở Edge và Spring Cloud Gateway ở tầng ứng dụng có một phần chức năng reverse proxy/routing giao nhau, nhưng không đồng nghĩa vai trò kiến trúc. Nginx phù hợp nhận lưu lượng Internet, TLS, static assets và giới hạn kết nối/request; Spring Cloud Gateway phù hợp định tuyến nghiệp vụ, tích hợp Spring Security/JWT, filter ứng dụng và Eureka. Với E-commerce Microservices, kết hợp hai lớp thường hợp lý nếu lợi ích vận hành phù hợp; CDN/WAF, load balancer managed hoặc hệ thống nhỏ có thể dẫn tới phương án khác.
+
+**Phạm vi xác minh:** workspace không có mã nguồn React/Spring, cấu hình Eureka, route Gateway hay JWT policy. Các dịch vụ và luồng trong Bài 5 là ví dụ theo đề bài, không phải thành phần đã được tìm thấy hoặc triển khai trong project. Không có cấu hình hệ thống nào được thay đổi.

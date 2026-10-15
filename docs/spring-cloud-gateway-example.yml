@@ -1,0 +1,27 @@
+# Illustrative Spring Cloud Gateway route snippet, not a complete application config.
+# This common spring.cloud.gateway.routes form is version-dependent; verify the
+# property prefix and Spring Cloud BOM against the Gateway generation in use.
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+        - id: product-service
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/api/products/**
+        - id: order-service
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/api/orders/**
+        - id: payment-service
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/api/payments/**
+
+# lb:// requires matching Eureka service IDs, a working DiscoveryClient,
+# Spring Cloud LoadBalancer, and mutually compatible Spring versions.
+# Add Spring Security/JWT and route filters according to the actual security policy.
