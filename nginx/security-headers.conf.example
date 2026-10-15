@@ -1,0 +1,23 @@
+# Example only. Not installed or enabled on the VPS.
+# Confirm certificate paths and the active server block before using.
+
+server {
+    listen 443 ssl;
+    server_name secure.example.com;
+
+    ssl_certificate /etc/nginx/ssl/server.crt;
+    ssl_certificate_key /etc/nginx/ssl/server.key;
+
+    # Clickjacking mitigation: allow framing only by this origin.
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    # Prevent MIME type sniffing; the upstream must send correct Content-Type.
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Enable HTTPS-only behavior in browsers for one year and all subdomains.
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}

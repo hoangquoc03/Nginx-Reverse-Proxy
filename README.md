@@ -787,3 +787,11 @@ Hướng dẫn phân tích lỗi `unexpected "proxy_set_header"`, cấu hình `a
 Phân tích lỗi `504 Gateway Time-out` khi Spring Boot export báo cáo khoảng 90 giây, cấu hình timeout mẫu và quy trình test/reload an toàn được trình bày tại [docs/nginx-upstream-timeout.md](docs/nginx-upstream-timeout.md). File [nginx/export-timeout.conf.example](nginx/export-timeout.conf.example) chỉ là cấu hình tham khảo, không được Nginx tự nạp.
 
 Điểm chính: đặt `proxy_read_timeout 120s` cho route export để cho phép khoảng chờ upstream dài hơn 90 giây; timeout này là khoảng giữa các lần đọc response, không phải deadline tổng tuyệt đối. Chỉ chạy `sudo systemctl reload nginx` sau khi `sudo nginx -t` thành công. Chưa có cấu hình hệ thống hay ứng dụng nào được thay đổi.
+
+---
+
+# Bài tập: HTTP Security Headers trên Nginx
+
+Hướng dẫn giải thích `X-Frame-Options`, `X-Content-Type-Options`, HSTS, tham số `always`, cách kiểm tra bằng `curl -I` và quy trình áp dụng an toàn nằm tại [docs/nginx-security-headers.md](docs/nginx-security-headers.md). Cấu hình ví dụ ở [nginx/security-headers.conf.example](nginx/security-headers.conf.example) chỉ là tài liệu tham khảo, không được nạp vào Nginx.
+
+**Lưu ý HSTS:** `includeSubDomains` ảnh hưởng mọi subdomain. Chỉ bật khi toàn bộ subdomain cần thiết đã phục vụ HTTPS ổn định; chưa có cấu hình nào được áp dụng hoặc xác minh trên VPS.
