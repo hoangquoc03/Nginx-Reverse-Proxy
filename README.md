@@ -177,11 +177,11 @@ Khi một upstream dừng, kiểm tra riêng route của nó: frontend bằng `c
 
 ## 7. Phân biệt HTTP 502, 504 và 500
 
-| Mã                          | Ý nghĩa trong tình huống này                                                                                           | Ví dụ                                                       |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Mã                          | Ý nghĩa trong tình huống này                                                                                               | Ví dụ                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `502 Bad Gateway`           | Nginx không nhận được phản hồi upstream hợp lệ. Đây là lỗi thường gặp khi một ứng dụng không chạy hoặc kết nối bị từ chối. | Không có listener tại `127.0.0.1:3000` hoặc `127.0.0.1:8080`. |
-| `504 Gateway Timeout`       | Nginx chờ upstream quá lâu mà không nhận được phản hồi kịp thời.                                                       | Ứng dụng/upstream phản hồi quá chậm hoặc bị treo.           |
-| `500 Internal Server Error` | Lỗi nội bộ của máy chủ hoặc ứng dụng; không phải mã mặc định chỉ vì một upstream bị dừng.                                  | Ứng dụng tự trả `500`, hoặc một xử lý nội bộ phát sinh lỗi. |
+| `504 Gateway Timeout`       | Nginx chờ upstream quá lâu mà không nhận được phản hồi kịp thời.                                                           | Ứng dụng/upstream phản hồi quá chậm hoặc bị treo.             |
+| `500 Internal Server Error` | Lỗi nội bộ của máy chủ hoặc ứng dụng; không phải mã mặc định chỉ vì một upstream bị dừng.                                  | Ứng dụng tự trả `500`, hoặc một xử lý nội bộ phát sinh lỗi.   |
 
 **Trả lời câu hỏi:** Nếu Nginx còn hoạt động nhưng không kết nối được upstream được chọn (React ở cổng `3000` hoặc API Gateway ở cổng `8080`), thông thường Nginx trả `502 Bad Gateway`. Không thể khẳng định mọi lỗi upstream luôn là cùng một mã; status còn tùy loại lỗi, thời gian chờ và cấu hình Nginx/ứng dụng.
 
@@ -194,15 +194,15 @@ Khi một upstream dừng, kiểm tra riêng route của nó: frontend bằng `c
 
 ## 9. Lỗi thường gặp và cách khắc phục
 
-| Hiện tượng                                    | Kiểm tra/cách khắc phục                                                                                                           |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Hiện tượng                                    | Kiểm tra/cách khắc phục                                                                                                                                     |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `502 Bad Gateway`                             | Kiểm tra upstream tương ứng với URL: frontend cổng `3000`, API cổng `8080`; xác nhận service đang chạy/bind đúng địa chỉ và xem `/var/log/nginx/error.log`. |
-| `504 Gateway Timeout`                         | Kiểm tra ứng dụng có bị treo/chậm, tài nguyên VPS và log ứng dụng; chỉ tăng timeout khi đã xác định nhu cầu.                      |
-| `nginx -t` báo lỗi                            | Sửa lỗi cú pháp hoặc dấu `;`/`{}` ở file và dòng được báo; chưa reload cho đến khi kiểm tra thành công.                           |
-| Domain không truy cập được                    | Kiểm tra DNS trỏ về VPS, firewall/security group cho phép cổng `80`, Nginx đang chạy và `listen 80` đúng.                         |
-| Trả nhầm website/server block                 | Kiểm tra `server_name`, các cấu hình site được enable và server block trùng; kiểm tra bằng request có header `Host`.              |
-| Nginx không kết nối được dù app chạy          | Kiểm tra dịch vụ tương ứng có thực sự nghe trên `127.0.0.1:3000` hoặc `127.0.0.1:8080` không; `localhost` có thể resolve sang IPv6. |
-| Cổng 3000/8080 truy cập trực tiếp từ Internet | Rà soát địa chỉ bind và firewall; thông thường client chỉ cần cổng `80` (hoặc `443` khi triển khai HTTPS).                              |
+| `504 Gateway Timeout`                         | Kiểm tra ứng dụng có bị treo/chậm, tài nguyên VPS và log ứng dụng; chỉ tăng timeout khi đã xác định nhu cầu.                                                |
+| `nginx -t` báo lỗi                            | Sửa lỗi cú pháp hoặc dấu `;`/`{}` ở file và dòng được báo; chưa reload cho đến khi kiểm tra thành công.                                                     |
+| Domain không truy cập được                    | Kiểm tra DNS trỏ về VPS, firewall/security group cho phép cổng `80`, Nginx đang chạy và `listen 80` đúng.                                                   |
+| Trả nhầm website/server block                 | Kiểm tra `server_name`, các cấu hình site được enable và server block trùng; kiểm tra bằng request có header `Host`.                                        |
+| Nginx không kết nối được dù app chạy          | Kiểm tra dịch vụ tương ứng có thực sự nghe trên `127.0.0.1:3000` hoặc `127.0.0.1:8080` không; `localhost` có thể resolve sang IPv6.                         |
+| Cổng 3000/8080 truy cập trực tiếp từ Internet | Rà soát địa chỉ bind và firewall; thông thường client chỉ cần cổng `80` (hoặc `443` khi triển khai HTTPS).                                                  |
 
 ## 10. Kết luận ngắn để trình bày
 
@@ -473,12 +473,12 @@ Nếu endpoint health đã biết, kiểm tra thêm bằng `curl -i https://api.
 
 Ghi nhận sau khi bạn chạy lệnh trên VPS; hiện chưa có kết quả thực tế để điền:
 
-| Kiểm tra | Kết quả mong đợi | Kết quả thực tế / thời gian |
-|---|---|---|
-| `curl -I http://api.my-ecommerce.com` | `301` tới HTTPS | Chưa chạy |
-| `curl -I https://api.my-ecommerce.com` | TLS hợp lệ; status tùy backend | Chưa chạy |
-| `openssl s_client ...` | `Verify return code: 0 (ok)` | Chưa chạy |
-| `sudo certbot renew --dry-run` | Dry-run thành công | Chưa chạy |
+| Kiểm tra                               | Kết quả mong đợi               | Kết quả thực tế / thời gian |
+| -------------------------------------- | ------------------------------ | --------------------------- |
+| `curl -I http://api.my-ecommerce.com`  | `301` tới HTTPS                | Chưa chạy                   |
+| `curl -I https://api.my-ecommerce.com` | TLS hợp lệ; status tùy backend | Chưa chạy                   |
+| `openssl s_client ...`                 | `Verify return code: 0 (ok)`   | Chưa chạy                   |
+| `sudo certbot renew --dry-run`         | Dry-run thành công             | Chưa chạy                   |
 
 Log Nginx và Certbot:
 
@@ -493,18 +493,18 @@ Thoát theo dõi log bằng `Ctrl+C`. Với systemd, xem `journalctl` ở mục 
 
 ## 9. Lỗi thường gặp và cách xử lý
 
-| Hiện tượng | Kiểm tra và hướng xử lý |
-|---|---|
-| DNS chưa trỏ đúng VPS | So sánh A với IPv4 public do nhà cung cấp cấp; kiểm tra AAAA nếu có; đợi DNS cập nhật rồi kiểm tra lại. |
-| Port 80 bị chặn | Kiểm tra UFW và firewall/security group. HTTP-01 cần truy cập challenge qua port 80; chỉ mở sau khi bạn xác nhận thay đổi. |
-| Port 443 chưa mở | Mở TCP 443 ở firewall VPS và firewall nhà cung cấp sau khi được cho phép; nếu không, client không thể kết nối HTTPS. |
-| Certbot không xác minh domain | Kiểm tra DNS A/AAAA, truy cập Internet tới port 80, Nginx chọn đúng `server_name`, và log Certbot. |
-| Nginx sai đường dẫn chứng chỉ | Xác nhận chứng chỉ đã cấp và file `live/.../fullchain.pem`, `privkey.pem` tồn tại; không tự tạo file giả. |
-| Chứng chỉ không đúng domain | Chạy `sudo certbot certificates` và `openssl x509 ... -checkhost`; cấp lại đúng `-d` sau khi sửa DNS/challenge. |
-| Private key không khớp chứng chỉ | Đọc lỗi `nginx -t`/error log, xác nhận hai file cùng lineage Certbot; không ghi đè key hoặc dán nội dung key. |
-| Gia hạn thất bại | Chạy `sudo certbot renew --dry-run`, đọc terminal, journal và `/var/log/letsencrypt/letsencrypt.log`; kiểm tra timer và HTTP-01 reachability. |
-| HTTP redirect loop | Đảm bảo redirect chỉ ở server `listen 80`; HTTPS server không redirect về HTTP; kiểm tra proxy/load balancer có truyền đúng scheme nếu có thêm proxy. |
-| Backend API Gateway không hoạt động | Kiểm tra `curl -i http://127.0.0.1:8080/<endpoint>` trên VPS, listener và log backend; Nginx thường ghi `502` khi không kết nối được upstream. |
+| Hiện tượng                          | Kiểm tra và hướng xử lý                                                                                                                               |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DNS chưa trỏ đúng VPS               | So sánh A với IPv4 public do nhà cung cấp cấp; kiểm tra AAAA nếu có; đợi DNS cập nhật rồi kiểm tra lại.                                               |
+| Port 80 bị chặn                     | Kiểm tra UFW và firewall/security group. HTTP-01 cần truy cập challenge qua port 80; chỉ mở sau khi bạn xác nhận thay đổi.                            |
+| Port 443 chưa mở                    | Mở TCP 443 ở firewall VPS và firewall nhà cung cấp sau khi được cho phép; nếu không, client không thể kết nối HTTPS.                                  |
+| Certbot không xác minh domain       | Kiểm tra DNS A/AAAA, truy cập Internet tới port 80, Nginx chọn đúng `server_name`, và log Certbot.                                                    |
+| Nginx sai đường dẫn chứng chỉ       | Xác nhận chứng chỉ đã cấp và file `live/.../fullchain.pem`, `privkey.pem` tồn tại; không tự tạo file giả.                                             |
+| Chứng chỉ không đúng domain         | Chạy `sudo certbot certificates` và `openssl x509 ... -checkhost`; cấp lại đúng `-d` sau khi sửa DNS/challenge.                                       |
+| Private key không khớp chứng chỉ    | Đọc lỗi `nginx -t`/error log, xác nhận hai file cùng lineage Certbot; không ghi đè key hoặc dán nội dung key.                                         |
+| Gia hạn thất bại                    | Chạy `sudo certbot renew --dry-run`, đọc terminal, journal và `/var/log/letsencrypt/letsencrypt.log`; kiểm tra timer và HTTP-01 reachability.         |
+| HTTP redirect loop                  | Đảm bảo redirect chỉ ở server `listen 80`; HTTPS server không redirect về HTTP; kiểm tra proxy/load balancer có truyền đúng scheme nếu có thêm proxy. |
+| Backend API Gateway không hoạt động | Kiểm tra `curl -i http://127.0.0.1:8080/<endpoint>` trên VPS, listener và log backend; Nginx thường ghi `502` khi không kết nối được upstream.        |
 
 ## 10. Kết luận trình bày
 
@@ -515,3 +515,241 @@ Thoát theo dõi log bằng `Ctrl+C`. Với systemd, xem `journalctl` ở mục 
 - **Đã thực hiện trong workspace:** bổ sung hướng dẫn bài HTTPS vào README và thêm file cấu hình tham khảo.
 - **Chưa thực hiện trên VPS:** chưa truy cập/kiểm tra DNS, firewall, phiên bản Ubuntu, Nginx hay Certbot; chưa cài package, xin chứng chỉ, sửa cấu hình hệ thống, reload dịch vụ hoặc kiểm thử endpoint.
 - **Việc bạn cần tự làm:** kiểm tra các điều kiện ở mục 3, chọn đúng một phương thức cài Certbot, sao lưu và xác nhận trước khi chạy Certbot hoặc chỉnh Nginx, rồi ghi kết quả thực tế ở mục 8.
+
+---
+
+# Bài 4: Tối ưu hóa Nginx và reload cấu hình không gián đoạn
+
+> Hướng dẫn và cấu hình dưới đây chỉ là tài liệu tham khảo trong workspace. Không có kết nối tới VPS; chưa kiểm tra hay sửa cấu hình production, chưa reload/restart Nginx và chưa gửi request upload.
+
+## 1. Mục tiêu bài học
+
+- Cho phép request upload tới 10 MB tại phạm vi phù hợp.
+- Bật Gzip có chọn lọc cho nội dung văn bản đủ điều kiện.
+- Kiểm tra cấu hình trước khi áp dụng và xác minh hành vi sau reload.
+- Phân biệt `restart` với `reload`, ưu tiên thao tác ít gián đoạn trên production.
+
+Mẫu các đoạn cấu hình nằm trong [nginx/optimization.conf](nginx/optimization.conf). Đây là file tham khảo **không được Nginx tự động nạp**; không chép đè `/etc/nginx/nginx.conf` hoặc `/etc/nginx/sites-available/default`.
+
+## 2. Nguyên nhân HTTP 413 và giới hạn upload
+
+`413 Request Entity Too Large` (còn được gọi là `Payload Too Large`) nghĩa là request body vượt giới hạn của một tầng xử lý request. Nếu `client_max_body_size` ở Nginx nhỏ hơn body upload khoảng 3 MB, Nginx có thể từ chối request trước khi chuyển đầy đủ tới backend.
+
+Nginx không phải tầng duy nhất có giới hạn. API Gateway, framework/backend, middleware multipart, reverse proxy/CDN phía trước, và validation của ứng dụng cũng có thể giới hạn kích thước. Nếu tăng giới hạn Nginx mà vẫn nhận 413, kiểm tra log/status tại backend và điều chỉnh tầng đang từ chối theo chính sách ứng dụng. Không tăng giới hạn toàn hệ thống tùy tiện nếu chỉ endpoint Avatar cần upload.
+
+## 3. Cấu hình `client_max_body_size`
+
+Nginx cho phép chỉ thị này trong ngữ cảnh `http`, `server` và `location`. Nếu không đặt ở phạm vi cụ thể hơn, giá trị được kế thừa từ phạm vi cha; chỉ thị đặt tại `location` sẽ ghi đè giá trị kế thừa trong location đó.
+
+### Phương án A: toàn bộ domain
+
+Thêm vào `server { ... }` tương ứng với domain, nếu tất cả route trên domain cần giới hạn giống nhau:
+
+```nginx
+server {
+   server_name domain.com;
+
+   client_max_body_size 10m;
+
+   location /api/ {
+      proxy_pass http://127.0.0.1:8080;
+      # Giữ các proxy header đang dùng tại đây.
+   }
+
+   location / {
+      proxy_pass http://127.0.0.1:3000;
+   }
+}
+```
+
+### Phương án B: chỉ endpoint Avatar
+
+Nếu chỉ endpoint upload cần giới hạn 10 MB, đặt chỉ thị trong `location` khớp chính xác endpoint thật. Ví dụ dưới đây giả định endpoint là `/api/users/avatar`; hãy thay bằng route thực tế:
+
+```nginx
+server {
+   server_name domain.com;
+
+   location = /api/users/avatar {
+      client_max_body_size 10m;
+      proxy_pass http://127.0.0.1:8080;
+
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+   }
+
+   location /api/ {
+      proxy_pass http://127.0.0.1:8080;
+      # Giữ các proxy header đang dùng tại đây.
+   }
+}
+```
+
+Exact-match location cho route Avatar được ưu tiên trước location tiền tố `/api/`; các route API khác vẫn dùng cấu hình chung. Nếu endpoint có nhiều URI con, cân nhắc prefix phù hợp thay vì `=`. Với yêu cầu chỉ giới hạn Avatar, phương án B là lựa chọn hẹp hơn; phương án A đơn giản hơn nếu mọi request của domain được phép có body tới 10 MB.
+
+`10m` là giới hạn kích thước **toàn request body** theo đơn vị Nginx, không chỉ riêng bytes của ảnh. Với `multipart/form-data`, boundary và các field khác cũng chiếm dung lượng, vì vậy file sát ngưỡng 10 MB có thể làm toàn body vượt `10m`. Nếu nghiệp vụ cần chấp nhận file đủ 10 MB cộng overhead, hãy thống nhất một giới hạn có phần đệm với backend và kiểm thử, thay vì tùy tiện tăng giá trị.
+
+## 4. Cấu hình Gzip
+
+Kiểm tra `/etc/nginx/nginx.conf` và các file include trước. Chỉ bổ sung các chỉ thị còn thiếu vào khối `http { ... }` hiện có; không lồng thêm `http {}` và không thay toàn bộ file. Không khai báo trùng nếu cấu hình đã có Gzip:
+
+```nginx
+http {
+   # Giữ nguyên các thiết lập và include hiện có.
+
+   gzip on;
+   gzip_vary on;
+   gzip_proxied any;
+   gzip_comp_level 5;
+   gzip_min_length 1024;
+   gzip_types
+      text/plain
+      text/css
+      text/javascript
+      application/javascript
+      application/json
+      application/xml
+      text/xml
+      image/svg+xml;
+
+   # Giữ nguyên các thiết lập và include còn lại.
+}
+```
+
+Đoạn `http {}` trên minh họa đúng ngữ cảnh. Khi chỉnh file hệ thống, chỉ chèn các chỉ thị Gzip vào khối `http` có sẵn, không dán thêm một khối `http` lồng bên trong.
+
+- `gzip on;`: bật nén Gzip cho response phù hợp khi client yêu cầu hỗ trợ.
+- `gzip_vary on;`: thêm `Vary: Accept-Encoding` để cache phân biệt response nén và không nén theo khả năng client.
+- `gzip_proxied any;`: cho phép Gzip cả response gửi cho request được chuyển tiếp qua proxy, theo điều kiện cấu hình này.
+- `gzip_comp_level 5;`: mức nén từ 1 đến 9; mức cao hơn thường tốn CPU hơn. Mức 5 là lựa chọn cân bằng ban đầu, cần đo trên tải thực tế.
+- `gzip_min_length 1024;`: chỉ nén body từ khoảng 1024 byte trở lên; Nginx dựa vào `Content-Length` để áp dụng điều kiện này.
+- `gzip_types`: MIME type bổ sung được nén, ở đây là CSS, JavaScript, JSON, XML và SVG. `text/html` đã được Nginx xử lý mặc định nên không cần liệt kê.
+
+Gzip giảm số byte văn bản truyền qua mạng, không sửa hoặc giảm kích thước file gốc trên ổ đĩa. Không nên bật nén cho mọi định dạng: JPEG, PNG, WebP, ZIP, gzip và các file vốn đã nén thường không giảm đáng kể, có thể chỉ tốn CPU. Response chỉ được nén khi client gửi `Accept-Encoding: gzip`, MIME type/độ dài/status và cách upstream xử lý cho phép; response đã được nén sẵn thường không nên nén lần hai.
+
+## 5. Quy trình triển khai an toàn trên production
+
+Các lệnh dưới đây là hướng dẫn để bạn tự thực hiện sau khi có quyền và chấp thuận thay đổi. **Không** chạy `reload` hoặc sửa file production từ workspace này.
+
+1. **Kiểm tra cấu hình và tìm đúng file đang có hiệu lực.**
+
+   ```bash
+   sudo nginx -T
+   sudo grep -RInE 'client_max_body_size|gzip(_on|_vary|_proxied|_comp_level|_min_length|_types)?' /etc/nginx
+   ```
+
+   `nginx -T` cho biết file được include và server/location hiện có. Có thể cần xem thêm `sites-enabled` và cấu hình domain cụ thể. Không sửa một file chỉ vì tên của nó có vẻ đúng; xác định file thực sự được include và các directive đã khai báo.
+
+2. **Sao lưu đúng file sẽ chỉnh.** Ví dụ, thay đường dẫn theo kết quả kiểm tra:
+
+   ```bash
+   sudo cp -a /etc/nginx/nginx.conf "/etc/nginx/nginx.conf.bak.$(date +%Y%m%d-%H%M%S)"
+   sudo cp -a /etc/nginx/sites-available/default "/etc/nginx/sites-available/default.bak.$(date +%Y%m%d-%H%M%S)"
+   ```
+
+   Chỉ sao lưu file tồn tại và sẽ được chỉnh; nếu server block nằm ở file khác, sao lưu file đó thay cho `default`.
+
+3. **Chỉnh sửa tối thiểu** bằng editor quản trị, ví dụ `sudoedit /etc/nginx/nginx.conf` cho Gzip và `sudoedit <file-server-block-thuc-te>` cho giới hạn upload. Giữ nguyên cấu hình không liên quan; thêm `client_max_body_size` ở server hoặc location được chọn. Không áp dụng file mẫu trong workspace bằng cách include toàn bộ.
+
+4. **Kiểm tra cấu hình trước khi áp dụng:**
+
+   ```bash
+   sudo nginx -t
+   ```
+
+5. Nếu kiểm tra thất bại, **không reload/restart**. Đọc thông báo chỉ ra file/dòng, sửa lỗi rồi chạy lại `sudo nginx -t`.
+6. Chỉ khi `nginx -t` báo cú pháp và kiểm tra thành công mới áp dụng:
+
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+7. Kiểm tra trạng thái và log sau khi reload:
+
+   ```bash
+   sudo systemctl status nginx
+   sudo journalctl -u nginx --since "10 minutes ago"
+   sudo tail -n 100 /var/log/nginx/error.log
+   sudo tail -n 100 /var/log/nginx/access.log
+   ```
+
+8. Kiểm tra website, frontend, `/api/`, upload trong/ngoài giới hạn và Gzip như mục 8. Đối chiếu error/access log cùng log backend để xác nhận các route cũ vẫn hoạt động.
+
+Kiểm tra trước giúp phát hiện lỗi cú pháp, directive sai ngữ cảnh, file chứng chỉ/include thiếu hoặc xung đột trước khi yêu cầu Nginx nạp cấu hình mới. `nginx -t` không chứng minh ứng dụng/backend hoạt động đúng; cần kiểm tra endpoint thực tế sau reload.
+
+## 6. Restart và reload: lựa chọn trên production
+
+**`sudo systemctl restart nginx`** dừng rồi khởi động lại service. Có thể có khoảng gián đoạn trong lúc chuyển đổi, tùy tình trạng Nginx, systemd, socket và cách triển khai. Đây không phải lựa chọn ưu tiên cho thay đổi cấu hình thông thường khi Nginx đang chạy ổn định.
+
+**`sudo systemctl reload nginx`** yêu cầu Nginx nạp lại cấu hình. Với master process đang khỏe và cấu hình hợp lệ, Nginx có thể khởi chạy worker mới để nhận kết nối mới, rồi cho worker cũ hoàn tất kết nối đang xử lý trước khi thoát.
+
+Đây là **graceful reload**: thay đổi cấu hình trong khi giảm tối đa ảnh hưởng đến kết nối hiện tại. Trong vận hành, người ta thường gọi là reload gần như không gián đoạn; không nên cam kết zero-downtime tuyệt đối. Kết quả còn phụ thuộc lỗi cấu hình/runtime, worker, kết nối dài hạn, module và ứng dụng upstream.
+
+**Lệnh đầu tiên luôn là `sudo nginx -t`. Chỉ reload khi lệnh đó thành công.** Không dùng restart như cách thay thế cho kiểm tra cú pháp.
+
+## 7. Kiểm thử sau reload
+
+Chạy kiểm tra sau khi cấu hình đã được bạn áp dụng trên VPS:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+sudo systemctl status nginx
+sudo journalctl -u nginx --since "10 minutes ago"
+sudo tail -n 100 /var/log/nginx/error.log
+sudo tail -n 100 /var/log/nginx/access.log
+```
+
+Chỉ chạy reload nếu bước `nginx -t` thành công. Nếu vừa kiểm tra ở quy trình triển khai và chưa chỉnh thêm gì, vẫn có thể dùng status/log để xác nhận; không cần reload lần nữa nếu chưa có thay đổi mới.
+
+### Xác minh Gzip bằng response thực tế
+
+Ví dụ HEAD theo yêu cầu bài tập:
+
+```bash
+curl -sSI -H 'Accept-Encoding: gzip' https://domain.com/
+```
+
+HEAD không tải body và có thể không đi qua cùng logic như GET. Để kiểm tra response thực tế, dùng GET tới một file/text endpoint đủ lớn và đúng MIME type:
+
+```bash
+curl -sS -D - -o /dev/null -H 'Accept-Encoding: gzip' https://domain.com/path/to/large-text-resource
+curl -sS -D - -o /dev/null -H 'Accept-Encoding: identity' https://domain.com/path/to/large-text-resource
+```
+
+Thay domain/path bằng endpoint thật. Khi điều kiện phù hợp, request đầu có `Content-Encoding: gzip`; với `gzip_vary on`, kiểm tra `Vary: Accept-Encoding`. Request `identity` so sánh trường hợp client không yêu cầu Gzip. Không phải mọi response đều có `Content-Encoding: gzip`: MIME type, body size, status, `Content-Length`, header từ upstream và cấu hình thực tế đều ảnh hưởng.
+
+### Xác minh website, API và upload
+
+```bash
+curl -I https://domain.com/
+curl -i https://domain.com/api/<health-endpoint-thuc-te>
+curl -i -F 'avatar=@./avatar-3mb.jpg' https://domain.com/api/<upload-endpoint-thuc-te>
+```
+
+Thay các URL bằng domain/endpoint thực tế; thêm thông tin xác thực mà API yêu cầu. Dùng test account/file an toàn, tốt nhất trên staging. Xác nhận frontend, `/api/` và upload dưới giới hạn hoạt động. Upload vượt 10 MB cần bị từ chối theo chính sách, thường là 413; trong production chỉ chạy thử upload vượt ngưỡng khi được phê duyệt và có thể dọn dữ liệu thử.
+
+Phân biệt tầng phát sinh lỗi bằng status/access log, Nginx error log và log API Gateway: `client intended to send too large body` trong error log thường chỉ Nginx từ chối body; nếu request tới backend và backend log/response báo 413 thì giới hạn nằm ở gateway/ứng dụng. Lỗi kết nối upstream như 502/504 khác với lỗi body size. Status 413 tự nó không cho biết chắc chắn tầng nào đã phát sinh.
+
+## 8. Lỗi thường gặp và cách khắc phục
+
+| Hiện tượng | Cách kiểm tra/xử lý |
+|---|---|
+| Vẫn nhận `413` sau khi đặt `10m` | Xác nhận request khớp đúng server/location, `nginx -T` cho thấy giá trị hiệu lực, đã reload thành công; sau đó kiểm tra giới hạn API Gateway/framework/multipart và body overhead. |
+| Nginx báo `413` khi file nhỏ hơn 10 MB | Tổng multipart body có thể lớn hơn file; xác định tầng phát sinh qua error/access và backend log. |
+| Gzip bật nhưng thiếu `Content-Encoding` | Dùng GET với nội dung text đủ lớn; kiểm tra `Accept-Encoding`, `Content-Type`, `Content-Length`, status, upstream compression và `gzip_types`. |
+| Cấu hình lỗi sau chỉnh sửa | Không reload/restart; chạy `sudo nginx -t`, sửa đúng file/dòng được báo, chạy lại test. |
+| Route frontend/API hỏng sau reload | Kiểm tra server/location, proxy headers, upstream 3000/8080, access/error log và health endpoint. |
+| Reload không thành công | Xem `systemctl status`, `journalctl` và `nginx -t`; giữ Nginx đang chạy với cấu hình cũ, sửa lỗi rồi thử lại. |
+
+## 9. Kết luận trình bày
+
+“Để sửa lỗi 413, cần đặt `client_max_body_size 10m` tại phạm vi nhỏ nhất phù hợp, đồng thời kiểm tra giới hạn của API Gateway và ứng dụng. Gzip chỉ nén response văn bản phù hợp khi client hỗ trợ, không giảm kích thước file gốc. Trên production, cần sao lưu, chỉnh tối thiểu và chạy `sudo nginx -t` trước; nếu hợp lệ thì dùng `systemctl reload nginx` để Nginx graceful reload, thay vì restart cho thay đổi cấu hình thông thường. Sau đó kiểm tra route, upload, response Gzip và log.”
+
+## Trạng thái bài 4
+
+- **Đã thực hiện trong workspace:** thêm hướng dẫn bài 4 vào README và tạo cấu hình snippet minh họa.
+- **Chưa thực hiện trên VPS:** chưa đọc/sửa cấu hình hệ thống, chưa thay đổi giới hạn body, bật Gzip, kiểm tra cấu hình bằng Nginx, reload/restart hoặc gửi request kiểm thử.
+- **Việc bạn cần tự làm:** xác định file và endpoint upload thực tế, sao lưu file hệ thống liên quan, chọn phạm vi giới hạn, bổ sung directives Gzip không trùng, chạy `sudo nginx -t`; chỉ khi thành công mới reload và kiểm tra website/API/upload/Gzip cùng log.
