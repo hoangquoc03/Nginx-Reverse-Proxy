@@ -779,3 +779,11 @@ Mẫu định tuyến `my-ecommerce.com` tới React/API và `admin.my-ecommerce
 # Bài tập: Xử lý lỗi cú pháp Nginx
 
 Hướng dẫn phân tích lỗi `unexpected "proxy_set_header"`, cấu hình `app.conf` đã sửa, kiểm tra bằng `sudo nginx -t`, reload an toàn và đọc journal nằm tại [docs/nginx-syntax-incident.md](docs/nginx-syntax-incident.md). Đây là tài liệu tham khảo; cấu hình hệ thống chưa được chỉnh và Nginx chưa được reload.
+
+---
+
+# Bài tập: Tối ưu timeout cho Nginx Reverse Proxy
+
+Phân tích lỗi `504 Gateway Time-out` khi Spring Boot export báo cáo khoảng 90 giây, cấu hình timeout mẫu và quy trình test/reload an toàn được trình bày tại [docs/nginx-upstream-timeout.md](docs/nginx-upstream-timeout.md). File [nginx/export-timeout.conf.example](nginx/export-timeout.conf.example) chỉ là cấu hình tham khảo, không được Nginx tự nạp.
+
+Điểm chính: đặt `proxy_read_timeout 120s` cho route export để cho phép khoảng chờ upstream dài hơn 90 giây; timeout này là khoảng giữa các lần đọc response, không phải deadline tổng tuyệt đối. Chỉ chạy `sudo systemctl reload nginx` sau khi `sudo nginx -t` thành công. Chưa có cấu hình hệ thống hay ứng dụng nào được thay đổi.

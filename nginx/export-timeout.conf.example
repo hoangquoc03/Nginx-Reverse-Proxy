@@ -1,0 +1,24 @@
+# Reference example only. Not loaded by Nginx and not installed on a server.
+# Adjust hostname, route, upstream and timeouts to the real environment.
+
+server {
+    listen 80;
+    server_name api.example.com;
+
+    # Keep the longer timeout scoped to the slow export endpoint.
+    location /api/export/ {
+        proxy_pass http://localhost:8080;
+
+        # A local upstream should normally accept a connection quickly.
+        proxy_connect_timeout 5s;
+
+        # Allow time to send the request and wait for the long-running export.
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
