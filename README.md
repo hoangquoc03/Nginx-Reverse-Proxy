@@ -803,3 +803,9 @@ Hướng dẫn giải thích `X-Frame-Options`, `X-Content-Type-Options`, HSTS, 
 Tình huống Docker publish backend ra ngoài dù UFW có thể chặn port được hướng dẫn tại [docs/docker-ufw-loopback.md](docs/docker-ufw-loopback.md). Compose mẫu ở [docker-compose.yml](docker-compose.yml) chỉ bind host port `8080` lên `127.0.0.1`, để Nginx chạy trên cùng host tiếp tục proxy tới backend.
 
 Đây là mẫu trong workspace, chưa được áp dụng hay kiểm thử trên VPS. `docker compose up -d` có thể tạo lại container và làm gián đoạn backend trong thời gian ngắn; cần xác nhận thời điểm triển khai và kiểm tra port từ cả host lẫn một máy bên ngoài.
+
+---
+
+# Bài tập: Phân tích access log Nginx
+
+Pipeline tìm Top 5 IP có nhiều response `404` nhất, giải thích từng lệnh, kết quả trên log mẫu, phương án AWK thuần và lưu ý khi đọc log do quyền truy cập được trình bày tại [docs/nginx-access-log-analysis.md](docs/nginx-access-log-analysis.md). Đây là phân tích dữ liệu log; không xóa hoặc thay đổi log hệ thống.

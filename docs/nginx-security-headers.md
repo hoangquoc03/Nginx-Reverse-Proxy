@@ -64,6 +64,7 @@ Các lệnh sau chỉ là hướng dẫn để bạn tự chạy trên VPS. Khô
    ```
 
    Chỉ khi có kết quả `syntax is ok` và `test is successful` mới tiếp tục. Nếu lỗi, không reload; sửa lỗi được báo và chạy lại test.
+
 4. Sau khi test thành công, áp dụng cấu hình:
 
    ```bash
