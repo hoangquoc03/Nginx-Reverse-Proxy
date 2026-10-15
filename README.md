@@ -795,3 +795,11 @@ Phân tích lỗi `504 Gateway Time-out` khi Spring Boot export báo cáo khoả
 Hướng dẫn giải thích `X-Frame-Options`, `X-Content-Type-Options`, HSTS, tham số `always`, cách kiểm tra bằng `curl -I` và quy trình áp dụng an toàn nằm tại [docs/nginx-security-headers.md](docs/nginx-security-headers.md). Cấu hình ví dụ ở [nginx/security-headers.conf.example](nginx/security-headers.conf.example) chỉ là tài liệu tham khảo, không được nạp vào Nginx.
 
 **Lưu ý HSTS:** `includeSubDomains` ảnh hưởng mọi subdomain. Chỉ bật khi toàn bộ subdomain cần thiết đã phục vụ HTTPS ổn định; chưa có cấu hình nào được áp dụng hoặc xác minh trên VPS.
+
+---
+
+# Bài tập: Tích hợp UFW và Docker
+
+Tình huống Docker publish backend ra ngoài dù UFW có thể chặn port được hướng dẫn tại [docs/docker-ufw-loopback.md](docs/docker-ufw-loopback.md). Compose mẫu ở [docker-compose.yml](docker-compose.yml) chỉ bind host port `8080` lên `127.0.0.1`, để Nginx chạy trên cùng host tiếp tục proxy tới backend.
+
+Đây là mẫu trong workspace, chưa được áp dụng hay kiểm thử trên VPS. `docker compose up -d` có thể tạo lại container và làm gián đoạn backend trong thời gian ngắn; cần xác nhận thời điểm triển khai và kiểm tra port từ cả host lẫn một máy bên ngoài.
