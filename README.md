@@ -773,3 +773,9 @@ Tài liệu chi tiết, sơ đồ Mermaid, giải thích Round Robin/passive hea
 Mẫu định tuyến `my-ecommerce.com` tới React/API và `admin.my-ecommerce.com` tới React Admin; API upstream gồm ba địa chỉ `127.0.0.1:8080`, `:8081`, `:8082`. Đây là cấu hình tham khảo theo đề bài, không có nghĩa các tiến trình/container hay DNS hiện đang tồn tại. Nginx Open Source dùng Round Robin mặc định và passive failure handling; không chủ động probe health endpoint như active health checker.
 
 **Trước production:** xác nhận port/container/network, DNS A/AAAA, server block và include hiện có; sao lưu file VPS; chỉ áp dụng sau `sudo nginx -t` thành công. Workspace không kết nối VPS nên chưa có cấu hình nào được triển khai hoặc kiểm thử thực tế.
+
+---
+
+# Bài tập: Xử lý lỗi cú pháp Nginx
+
+Hướng dẫn phân tích lỗi `unexpected "proxy_set_header"`, cấu hình `app.conf` đã sửa, kiểm tra bằng `sudo nginx -t`, reload an toàn và đọc journal nằm tại [docs/nginx-syntax-incident.md](docs/nginx-syntax-incident.md). Đây là tài liệu tham khảo; cấu hình hệ thống chưa được chỉnh và Nginx chưa được reload.
