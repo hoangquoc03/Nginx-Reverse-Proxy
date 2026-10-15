@@ -213,3 +213,305 @@ Khi một upstream dừng, kiểm tra riêng route của nó: frontend bằng `c
 - **Đã thực hiện trong workspace:** tạo tài liệu hướng dẫn `README.md`.
 - **Chưa thực hiện:** truy cập VPS, đọc/sửa `/etc/nginx/sites-available/default`, cài/reload Nginx, kiểm tra domain hoặc dừng ứng dụng. Các việc này cần bạn tự thực hiện trên VPS theo hướng dẫn ở trên.
 - **Mã nguồn React:** workspace không có mã nguồn để kiểm tra; không có mã ứng dụng nào bị sửa.
+
+---
+
+# Bài 3: Bảo mật HTTPS với Let's Encrypt và Certbot
+
+> Đây là tài liệu học tập và cấu hình tham khảo. Workspace không kết nối tới VPS. Chưa có DNS, firewall, package, chứng chỉ hay dịch vụ Nginx nào được kiểm tra hoặc thay đổi trên máy chủ thực tế. Các lệnh có `sudo` có thể yêu cầu mật khẩu quản trị.
+
+## 1. Mục tiêu kiến thức
+
+- Kiểm tra DNS, Nginx và khả năng truy cập từ Internet trước khi xin chứng chỉ.
+- Dùng Certbot và plugin Nginx để lấy chứng chỉ Let's Encrypt cho `api.my-ecommerce.com`.
+- Phục vụ HTTPS trên cổng `443`, chuyển HTTP sang HTTPS và proxy tới API Gateway nội bộ.
+- Kiểm tra cơ chế tự gia hạn và lưu kết quả kiểm thử thực tế, không suy đoán kết quả.
+
+## 2. Mô hình HTTP và HTTPS
+
+```text
+Client -- HTTP :80 --> Nginx -- 301 --> https://api.my-ecommerce.com
+Client -- HTTPS :443 (TLS) --> Nginx -- HTTP nội bộ --> 127.0.0.1:8080 (API Gateway)
+```
+
+HTTP cổng `80` chỉ chuyển hướng tới HTTPS; request HTTPS được Nginx giải mã TLS rồi proxy tới backend qua loopback. Kết nối từ Nginx tới `127.0.0.1:8080` trong cấu hình mẫu vẫn là HTTP nội bộ, không phải TLS end-to-end.
+
+## 3. Kiểm tra điều kiện trước khi cấp chứng chỉ
+
+Let's Encrypt phải xác minh quyền kiểm soát domain. Với HTTP-01 phổ biến, máy chủ xác minh cần truy cập được challenge qua HTTP cổng `80`. Hãy hoàn tất các kiểm tra sau trước khi chạy Certbot.
+
+1. **Kiểm tra DNS A và AAAA:**
+
+   ```bash
+   dig +short A api.my-ecommerce.com
+   dig +short AAAA api.my-ecommerce.com
+   ```
+
+   Bản ghi A phải trả về IPv4 public hiện tại của VPS. So sánh với địa chỉ được nhà cung cấp VPS cấp (địa chỉ `ip addr` có thể là private nếu VPS dùng NAT). Nếu có AAAA, IPv6 phải trỏ đúng máy chủ và máy chủ/firewall/Nginx phải phục vụ domain qua IPv6. AAAA sai có thể làm một số xác minh hoặc client đi nhầm máy; sửa DNS chỉ qua nhà cung cấp DNS sau khi bạn xác nhận.
+
+2. **Kiểm tra phiên bản Ubuntu và Nginx:**
+
+   ```bash
+   cat /etc/os-release
+   nginx -v
+   sudo systemctl status nginx
+   sudo nginx -t
+   ```
+
+   `nginx -t` cần báo cấu hình hợp lệ trước khi Certbot chỉnh hoặc reload Nginx. Đọc nội dung Nginx đang dùng trước khi thay đổi:
+
+   ```bash
+   sudo nginx -T
+   ```
+
+   Lệnh trên in cấu hình hợp nhất; không chia sẻ đầu ra công khai nếu cấu hình có thông tin nhạy cảm.
+
+3. **Kiểm tra listener và firewall:**
+
+   ```bash
+   sudo ss -lntp
+   sudo ufw status verbose
+   ```
+
+   Xác nhận Nginx có thể lắng nghe cổng `80` và `443`. Ngoài UFW, hãy kiểm tra firewall/security group tại trang quản trị nhà cung cấp VPS. Cả TCP `80` lẫn TCP `443` phải được cho phép từ Internet. Đây là bước kiểm tra, không tự mở firewall.
+
+4. **Kiểm tra domain từ một máy bên ngoài VPS:**
+
+   ```bash
+   curl -I --max-time 10 http://api.my-ecommerce.com
+   ```
+
+   Phản hồi HTTP chứng tỏ request đã tới một web server; timeout/không phân giải được tên miền cần điều tra DNS, route hoặc firewall. Nên kiểm tra từ mạng ngoài VPS vì truy cập từ chính VPS không xác nhận được firewall inbound của nhà cung cấp. Chưa cần HTTPS hoạt động ở bước này.
+
+Không thay đổi DNS, firewall, cấu hình Nginx hoặc dịch vụ hệ thống nếu chưa xem cấu hình hiện tại và chưa được bạn xác nhận.
+
+## 4. Kiểm tra và cài Certbot trên Ubuntu
+
+Trước hết xác định Ubuntu và cách Certbot đang được cài, tránh cài trùng:
+
+```bash
+cat /etc/os-release
+command -v certbot
+certbot --version
+snap list certbot
+dpkg-query -W -f='${Status} ${Version}\n' certbot python3-certbot-nginx
+apt-cache policy certbot python3-certbot-nginx
+```
+
+Một số lệnh kiểm tra có thể báo package chưa cài; đó là thông tin, không phải lý do để cài cả hai phương thức. Với Ubuntu hiện đại, Certbot upstream thường khuyến nghị Snap; hãy xác nhận phương án phù hợp phiên bản Ubuntu/chính sách máy chủ trước khi cài. Chọn **một** trong hai phương án dưới đây, không duy trì đồng thời bản Snap và APT.
+
+### Phương án A: Snap (thường được khuyến nghị)
+
+Chỉ dùng nếu chưa có Certbot từ APT/Snap và Snap phù hợp với máy chủ:
+
+```bash
+sudo apt update
+sudo apt install snapd
+sudo snap install core
+sudo snap refresh core
+sudo snap install --classic certbot
+/snap/bin/certbot --version
+```
+
+Nếu `snap list certbot` đã cho thấy Certbot được cài, không cài lại. Nếu đang có bản APT, dừng lại và chọn cách chuyển đổi có chủ đích; không chạy cả hai bản.
+
+### Phương án B: Ubuntu APT
+
+Chọn nếu package APT của phiên bản Ubuntu và chính sách máy chủ là phù hợp, đồng thời chưa có bản Snap:
+
+```bash
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
+certbot --version
+```
+
+APT cung cấp Certbot cùng plugin tích hợp Nginx. Không cài gói APT chồng lên Certbot Snap hoặc ngược lại. Không lệnh cài package nào trong tài liệu này đã được chạy.
+
+## 5. Sao lưu và cấp chứng chỉ
+
+Certbot với plugin Nginx có thể sửa file cấu hình và reload Nginx. Trước khi chạy:
+
+1. Đọc cấu hình hiện tại bằng `sudo nginx -T`, xác nhận server block nhận `api.my-ecommerce.com` và `sudo nginx -t` thành công.
+2. Sao lưu cấu hình Nginx hiện có. Ví dụ, sau khi xác nhận thư mục `/etc/nginx` tồn tại và đủ dung lượng:
+
+   ```bash
+   sudo cp -a /etc/nginx "/etc/nginx.backup.$(date +%Y%m%d-%H%M%S)"
+   ```
+
+3. Đảm bảo DNS đúng, port `80` truy cập được từ Internet, và bạn chủ động đồng ý để Certbot thay đổi cấu hình. Nếu chưa đủ điều kiện, chưa chạy lệnh cấp chứng chỉ.
+
+Lệnh xin chứng chỉ bằng Nginx plugin và yêu cầu tự cấu hình HTTP redirect:
+
+```bash
+sudo certbot --nginx -d api.my-ecommerce.com --redirect
+```
+
+- `certbot`: chạy công cụ quản lý chứng chỉ.
+- `--nginx`: dùng plugin Nginx để xác minh domain và cài cấu hình chứng chỉ.
+- `-d api.my-ecommerce.com`: tên miền cần đưa vào chứng chỉ.
+- `--redirect`: yêu cầu cấu hình chuyển hướng HTTP sang HTTPS.
+
+Certbot có thể hỏi email, điều khoản sử dụng và xác nhận khác. Nếu chạy lệnh không có `--redirect`, chọn tùy chọn redirect khi Certbot hỏi nếu muốn chuyển HTTP sang HTTPS. Chỉ coi là thành công sau khi lệnh kết thúc thành công và kiểm tra được chứng chỉ/configuration.
+
+Nếu muốn tự quản lý server block bằng tay thay vì để Certbot cài cấu hình, dùng `sudo certbot certonly --nginx -d api.my-ecommerce.com` để chỉ xin chứng chỉ. Sau khi chứng chỉ có thật, mới triển khai mẫu ở mục 6. Chọn cách này hoặc `certbot --nginx --redirect`; không bật đồng thời hai bộ server block trùng domain.
+
+Kiểm tra sau khi Certbot cấp thành công:
+
+```bash
+sudo certbot certificates
+sudo openssl x509 -in /etc/letsencrypt/live/api.my-ecommerce.com/fullchain.pem -noout -checkhost api.my-ecommerce.com -dates
+```
+
+Không tạo file chứng chỉ giả, không tạo/ghi đè private key do Certbot quản lý và không in hoặc commit nội dung private key.
+
+## 6. Cấu hình Nginx HTTPS hoàn chỉnh
+
+Mẫu cũng có trong [nginx/https-api.conf](nginx/https-api.conf). Đây là file tham khảo trong workspace, **không** phải cấu hình đã cài vào `/etc/nginx/sites-available/`. Chỉ dùng sau khi chứng chỉ thật đã tồn tại tại hai đường dẫn dưới đây. Chọn cấu hình Certbot tự quản lý hoặc cấu hình thủ công này; không kích hoạt server block trùng nhau.
+
+```nginx
+# HTTP chỉ chuyển hướng sang HTTPS; không proxy ở server block này.
+server {
+    listen 80;
+    server_name api.my-ecommerce.com;
+
+    return 301 https://api.my-ecommerce.com$request_uri;
+}
+
+# HTTPS kết thúc TLS tại Nginx, sau đó proxy tới backend nội bộ.
+server {
+    listen 443 ssl;
+    server_name api.my-ecommerce.com;
+
+    ssl_certificate /etc/letsencrypt/live/api.my-ecommerce.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.my-ecommerce.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+HTTP server block chỉ `return 301` sang hostname HTTPS cố định; HTTPS server block không redirect ngược về HTTP nên không tạo redirect loop. `fullchain.pem` chứa chứng chỉ máy chủ và chuỗi intermediate cần cho client xác minh. `privkey.pem` là private key nhạy cảm; bảo vệ quyền truy cập file, không gửi nội dung qua chat/email/Git. Nếu backend không phải API Gateway hoặc không nghe trên `127.0.0.1:8080`, thay đúng upstream/port sau khi xác minh. Nếu API chỉ phục vụ dưới prefix nhất định, điều chỉnh `location`/`proxy_pass` theo contract backend.
+
+Nếu đã cấu hình AAAA và IPv6 hoạt động đầy đủ, cân nhắc thêm `listen [::]:80;` và `listen [::]:443 ssl;` tương ứng; không quảng bá AAAA tới máy không nhận được kết nối IPv6.
+
+## 7. Tự động gia hạn chứng chỉ
+
+Chứng chỉ Let's Encrypt thường có thời hạn khoảng 90 ngày. Certbot thường cài cơ chế gia hạn định kỳ; hãy kiểm tra đúng cơ chế của phương thức đã chọn, kiểm thử bằng dry-run và sửa lỗi ngay, không chờ tới ngày hết hạn. Không bật timer và cron cùng chạy renew.
+
+### Phương án A: systemd timer
+
+```bash
+systemctl list-timers --all | grep -i certbot
+sudo systemctl status certbot.timer
+sudo systemctl status snap.certbot.renew.timer
+```
+
+Bản APT thường dùng `certbot.timer`; bản Snap thường dùng `snap.certbot.renew.timer`. Kiểm tra timer tương ứng với cài đặt thực tế; lệnh kiểm tra timer không tồn tại có thể báo lỗi bình thường nếu đó không phải phương thức đã cài. systemd timer thường được ưu tiên khi package đã cài và kích hoạt sẵn vì lịch chạy được quản lý bởi systemd, không phải tự tạo lịch cron thứ hai.
+
+Xem lịch sử (dùng unit tương ứng):
+
+```bash
+sudo journalctl -u certbot.service --since '7 days ago'
+sudo journalctl -u snap.certbot.renew.service --since '7 days ago'
+sudo tail -n 100 /var/log/letsencrypt/letsencrypt.log
+```
+
+### Phương án B: cronjob (chỉ khi không có timer/job khác)
+
+Chỉ tạo cron sau khi xác nhận không có systemd timer, cronjob hay lịch renew do package quản lý. Dùng `command -v certbot` để xác định đường dẫn binary. Ví dụ trong `/etc/cron.d/certbot` cho bản APT:
+
+```cron
+17 3,15 * * * root /usr/bin/certbot renew -q
+```
+
+`certbot renew` kiểm tra từng chứng chỉ và chỉ gia hạn khi gần tới thời điểm cần; chạy hai lần mỗi ngày không đồng nghĩa xin chứng chỉ mới mỗi lần. Không cài ví dụ này nếu timer đã hoạt động.
+
+Nếu cần reload Nginx sau khi chứng chỉ được gia hạn, kiểm tra plugin/cấu hình hiện tại trước để tránh reload dư thừa. Có thể dùng deploy hook, hook chỉ được gọi sau lần gia hạn thành công. Ví dụ nội dung `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx`:
+
+```sh
+#!/bin/sh
+/usr/sbin/nginx -t && /bin/systemctl reload nginx
+```
+
+Tạo hook bằng editor có quyền quản trị và đặt quyền thực thi (`sudo chmod 755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx`). Không cần thêm hook nếu Certbot/plugin hiện tại đã xử lý reload phù hợp. Sau đó kiểm thử:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+Dry-run diễn tập quy trình gia hạn với staging, không thay thế chứng chỉ production; thành công nghĩa là renewal validation có thể hoàn tất. Nếu thất bại, đọc lỗi trên terminal và `/var/log/letsencrypt/letsencrypt.log`, kiểm tra DNS/port 80, timer và cấu hình Nginx. Deploy hook thường không chạy trong dry-run trừ khi bật `--run-deploy-hooks` trên phiên bản Certbot hỗ trợ.
+
+## 8. Kiểm thử HTTPS và kết quả mong đợi
+
+Sau khi Certbot đã cấu hình hoặc sau khi cài cấu hình thủ công, chạy theo thứ tự:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+sudo certbot certificates
+sudo certbot renew --dry-run
+curl -I http://api.my-ecommerce.com
+curl -I https://api.my-ecommerce.com
+openssl s_client -connect api.my-ecommerce.com:443 -servername api.my-ecommerce.com -verify_return_error </dev/null
+```
+
+Chỉ reload nếu `nginx -t` thành công. Kết quả mong đợi:
+
+- HTTP trả `301` và header `Location: https://api.my-ecommerce.com/...`.
+- HTTPS hoàn tất TLS và chứng chỉ có SAN đúng `api.my-ecommerce.com`; `openssl s_client` kết thúc với `Verify return code: 0 (ok)` khi chain tin cậy và hostname hợp lệ.
+- Request HTTPS được proxy đến API Gateway. Status phụ thuộc endpoint, method và trạng thái backend; không mặc định phải là `200`.
+- `certbot renew --dry-run` báo diễn tập gia hạn thành công.
+
+Nếu endpoint health đã biết, kiểm tra thêm bằng `curl -i https://api.my-ecommerce.com/<health-path-thuc-te>`; thay bằng path thực tế, không đoán endpoint.
+
+Ghi nhận sau khi bạn chạy lệnh trên VPS; hiện chưa có kết quả thực tế để điền:
+
+| Kiểm tra | Kết quả mong đợi | Kết quả thực tế / thời gian |
+|---|---|---|
+| `curl -I http://api.my-ecommerce.com` | `301` tới HTTPS | Chưa chạy |
+| `curl -I https://api.my-ecommerce.com` | TLS hợp lệ; status tùy backend | Chưa chạy |
+| `openssl s_client ...` | `Verify return code: 0 (ok)` | Chưa chạy |
+| `sudo certbot renew --dry-run` | Dry-run thành công | Chưa chạy |
+
+Log Nginx và Certbot:
+
+```bash
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+sudo tail -n 100 /var/log/letsencrypt/letsencrypt.log
+systemctl list-timers --all | grep -i certbot
+```
+
+Thoát theo dõi log bằng `Ctrl+C`. Với systemd, xem `journalctl` ở mục gia hạn; với Snap/APT hãy dùng unit tương ứng đã tìm thấy.
+
+## 9. Lỗi thường gặp và cách xử lý
+
+| Hiện tượng | Kiểm tra và hướng xử lý |
+|---|---|
+| DNS chưa trỏ đúng VPS | So sánh A với IPv4 public do nhà cung cấp cấp; kiểm tra AAAA nếu có; đợi DNS cập nhật rồi kiểm tra lại. |
+| Port 80 bị chặn | Kiểm tra UFW và firewall/security group. HTTP-01 cần truy cập challenge qua port 80; chỉ mở sau khi bạn xác nhận thay đổi. |
+| Port 443 chưa mở | Mở TCP 443 ở firewall VPS và firewall nhà cung cấp sau khi được cho phép; nếu không, client không thể kết nối HTTPS. |
+| Certbot không xác minh domain | Kiểm tra DNS A/AAAA, truy cập Internet tới port 80, Nginx chọn đúng `server_name`, và log Certbot. |
+| Nginx sai đường dẫn chứng chỉ | Xác nhận chứng chỉ đã cấp và file `live/.../fullchain.pem`, `privkey.pem` tồn tại; không tự tạo file giả. |
+| Chứng chỉ không đúng domain | Chạy `sudo certbot certificates` và `openssl x509 ... -checkhost`; cấp lại đúng `-d` sau khi sửa DNS/challenge. |
+| Private key không khớp chứng chỉ | Đọc lỗi `nginx -t`/error log, xác nhận hai file cùng lineage Certbot; không ghi đè key hoặc dán nội dung key. |
+| Gia hạn thất bại | Chạy `sudo certbot renew --dry-run`, đọc terminal, journal và `/var/log/letsencrypt/letsencrypt.log`; kiểm tra timer và HTTP-01 reachability. |
+| HTTP redirect loop | Đảm bảo redirect chỉ ở server `listen 80`; HTTPS server không redirect về HTTP; kiểm tra proxy/load balancer có truyền đúng scheme nếu có thêm proxy. |
+| Backend API Gateway không hoạt động | Kiểm tra `curl -i http://127.0.0.1:8080/<endpoint>` trên VPS, listener và log backend; Nginx thường ghi `502` khi không kết nối được upstream. |
+
+## 10. Kết luận trình bày
+
+“Let's Encrypt xác minh domain trước khi cấp TLS certificate. Certbot với Nginx plugin có thể cài chứng chỉ và tạo chuyển hướng HTTP sang HTTPS, nhưng cần kiểm tra DNS, port 80/443 và cấu hình hiện tại trước. Nginx kết thúc TLS trên cổng 443 rồi proxy request tới API Gateway nội bộ; Certbot tự gia hạn cần được kiểm tra bằng timer phù hợp và `renew --dry-run`. Private key phải được bảo vệ và không đưa vào Git.”
+
+## Trạng thái bài 3
+
+- **Đã thực hiện trong workspace:** bổ sung hướng dẫn bài HTTPS vào README và thêm file cấu hình tham khảo.
+- **Chưa thực hiện trên VPS:** chưa truy cập/kiểm tra DNS, firewall, phiên bản Ubuntu, Nginx hay Certbot; chưa cài package, xin chứng chỉ, sửa cấu hình hệ thống, reload dịch vụ hoặc kiểm thử endpoint.
+- **Việc bạn cần tự làm:** kiểm tra các điều kiện ở mục 3, chọn đúng một phương thức cài Certbot, sao lưu và xác nhận trước khi chạy Certbot hoặc chỉnh Nginx, rồi ghi kết quả thực tế ở mục 8.
