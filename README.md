@@ -763,3 +763,13 @@ Bài phân tích kiến trúc chi tiết ở [docs/architecture-comparison.md](d
 **Kết luận tóm tắt:** Nginx ở Edge và Spring Cloud Gateway ở tầng ứng dụng có một phần chức năng reverse proxy/routing giao nhau, nhưng không đồng nghĩa vai trò kiến trúc. Nginx phù hợp nhận lưu lượng Internet, TLS, static assets và giới hạn kết nối/request; Spring Cloud Gateway phù hợp định tuyến nghiệp vụ, tích hợp Spring Security/JWT, filter ứng dụng và Eureka. Với E-commerce Microservices, kết hợp hai lớp thường hợp lý nếu lợi ích vận hành phù hợp; CDN/WAF, load balancer managed hoặc hệ thống nhỏ có thể dẫn tới phương án khác.
 
 **Phạm vi xác minh:** workspace không có mã nguồn React/Spring, cấu hình Eureka, route Gateway hay JWT policy. Các dịch vụ và luồng trong Bài 5 là ví dụ theo đề bài, không phải thành phần đã được tìm thấy hoặc triển khai trong project. Không có cấu hình hệ thống nào được thay đổi.
+
+---
+
+# Bài 6: Load Balancing và Subdomain Routing với Nginx
+
+Tài liệu chi tiết, sơ đồ Mermaid, giải thích Round Robin/passive health checking và quy trình kiểm thử nằm ở [docs/load-balancing.md](docs/load-balancing.md). Cấu hình hoàn chỉnh tại [nginx/ecommerce-load-balancing.conf](nginx/ecommerce-load-balancing.conf).
+
+Mẫu định tuyến `my-ecommerce.com` tới React/API và `admin.my-ecommerce.com` tới React Admin; API upstream gồm ba địa chỉ `127.0.0.1:8080`, `:8081`, `:8082`. Đây là cấu hình tham khảo theo đề bài, không có nghĩa các tiến trình/container hay DNS hiện đang tồn tại. Nginx Open Source dùng Round Robin mặc định và passive failure handling; không chủ động probe health endpoint như active health checker.
+
+**Trước production:** xác nhận port/container/network, DNS A/AAAA, server block và include hiện có; sao lưu file VPS; chỉ áp dụng sau `sudo nginx -t` thành công. Workspace không kết nối VPS nên chưa có cấu hình nào được triển khai hoặc kiểm thử thực tế.
